@@ -2,70 +2,58 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>請求額 増加管理アプリ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#f8f9fa">
+    <title>請求額 増加チェッカー</title>
     <style>
         :root {
             --primary-color: #ff6b6b;
+            --primary-dark: #e05252;
             --bg-color: #f8f9fa;
             --card-bg: #ffffff;
             --text-main: #333333;
             --text-sub: #666666;
             --border-color: #e0e0e0;
+            --tab-height: 62px;
         }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 16px 16px calc(var(--tab-height) + env(safe-area-inset-bottom) + 24px);
             display: flex;
             justify-content: center;
         }
-        .container {
-            width: 100%;
-            max-width: 480px;
-        }
+        .container { width: 100%; max-width: 480px; }
         h1 {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             text-align: center;
-            margin-bottom: 20px;
-            color: var(--text-main);
+            margin: 4px 0 16px;
         }
         .card {
             background: var(--card-bg);
             border-radius: 12px;
-            padding: 20px;
+            padding: 18px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
-        .label {
-            font-size: 0.85rem;
-            color: var(--text-sub);
-            margin-bottom: 4px;
-        }
-        .value-large {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        .value-normal {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        .divider {
-            height: 1px;
-            background: var(--border-color);
-            margin: 12px 0;
-        }
+        .label { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 4px; }
+        .value-large { font-size: 1.9rem; font-weight: bold; color: var(--primary-color); }
+        .value-normal { font-size: 1.15rem; font-weight: bold; }
+        .divider { height: 1px; background: var(--border-color); margin: 12px 0; }
+        .flex-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .center { text-align: center; }
+
         textarea {
             width: 100%;
-            height: 100px;
+            height: 130px;
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-size: 0.9rem;
-            box-sizing: border-box;
+            font-size: 16px; /* iOSで入力時にズームされないよう16px以上 */
             resize: vertical;
             font-family: inherit;
         }
@@ -74,39 +62,84 @@
             background-color: #333333;
             color: white;
             border: none;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 13px;
+            border-radius: 10px;
             font-size: 1rem;
             font-weight: bold;
-            cursor: pointer;
             margin-top: 10px;
             transition: background 0.2s;
         }
-        button:active {
-            background-color: #555555;
+        button:active { background-color: #555555; }
+        button.btn-update { background-color: var(--primary-color); }
+        button.btn-update:active { background-color: var(--primary-dark); }
+        button.btn-gray { background-color: #868e96; }
+        button.btn-gray:active { background-color: #6c757d; }
+
+        /* タブ */
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fade 0.2s ease; }
+        @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        .tab-bar {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            display: flex;
+            background: rgba(255,255,255,0.96);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border-color);
+            padding-bottom: env(safe-area-inset-bottom);
+            z-index: 10;
         }
-        button.btn-update {
-            background-color: var(--primary-color);
+        .tab-btn {
+            flex: 1;
+            margin: 0;
+            height: var(--tab-height);
+            background: transparent;
+            color: var(--text-sub);
+            border-radius: 0;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
         }
-        button.btn-update:active {
-            background-color: #e05252;
-        }
-        .flex-row {
+        .tab-btn:active { background: rgba(0,0,0,0.04); }
+        .tab-btn .icon { font-size: 1.3rem; line-height: 1; }
+        .tab-btn.active { color: var(--primary-color); }
+
+        /* 内訳リスト */
+        .item-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: baseline;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
         }
-        .history-box {
-            font-size: 0.85rem;
-            color: var(--text-sub);
-            white-space: pre-wrap;
-            background: #f1f3f5;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 8px;
-            max-height: 120px;
-            overflow-y: auto;
+        .item-row:last-child { border-bottom: none; }
+        .item-name { font-size: 0.95rem; word-break: break-all; }
+        .item-amount { font-weight: bold; white-space: nowrap; }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-top: 14px;
+            margin-top: 4px;
+            border-top: 2px solid var(--text-main);
+            font-weight: bold;
         }
+        .total-row .amount { font-size: 1.4rem; color: var(--primary-color); }
+        .note { font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; }
+        .note.warn { color: #d9480f; }
+        .empty { text-align: center; color: var(--text-sub); padding: 24px 0; font-size: 0.9rem; }
+
+        /* 履歴 */
+        .history-date { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px; }
+        .history-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .history-grid .big { font-size: 1.05rem; font-weight: bold; }
+        .history-grid .inc { color: var(--primary-color); }
     </style>
 </head>
 <body>
@@ -114,162 +147,376 @@
 <div class="container">
     <h1>請求額 増加チェッカー</h1>
 
-    <!-- 現在のステータスカード -->
-    <div class="card">
-        <div class="flex-row">
-            <div>
-                <div class="label">前回の基準額（確定済）</div>
-                <div id="base-amount" class="value-normal">¥3,770</div>
+    <!-- ① 計算・入力 -->
+    <section id="tab-calc" class="tab-panel active">
+        <div class="card">
+            <div class="flex-row">
+                <div>
+                    <div class="label">前回の基準額（確定済）</div>
+                    <div id="base-amount" class="value-normal">¥0</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="label">今回の請求合計</div>
+                    <div id="current-total" class="value-normal">¥0</div>
+                </div>
             </div>
-            <div style="text-align: right;">
-                <div class="label">今回の請求合計</div>
-                <div id="current-total" class="value-normal">¥0</div>
+            <div class="divider"></div>
+            <div class="center" style="padding: 6px 0;">
+                <div class="label">今回親に請求する金額（増加分）</div>
+                <div id="diff-amount" class="value-large">¥0</div>
             </div>
         </div>
-        <div class="divider"></div>
-        <div style="text-align: center; padding: 10px 0;">
-            <div class="label">今回親に請求する金額（増加分）</div>
-            <div id="diff-amount" class="value-large">¥0</div>
+
+        <div class="card">
+            <div class="label">Geminiなどの出力テキストを貼り付け</div>
+            <textarea id="input-text" placeholder="例：&#10;- 食費（請求分）：6,088円&#10;- 教養・教育：1,760円&#10;合計：7,848円"></textarea>
+            <button id="btn-parse">数値を読み取って計算</button>
         </div>
-    </div>
 
-    <!-- 入力カード -->
-    <div class="card">
-        <div class="label">Geminiの出力テキストを貼り付け</div>
-        <textarea id="input-text" placeholder="ここにGeminiから出力されたテキスト（例：食費請求分 6088円、教養教育 1760円、合計 7848円 など）を貼り付けてください..."></textarea>
-        <button onclick="parseAndCalculate()">数値を読み取って計算</button>
-    </div>
+        <div class="card">
+            <div class="label">管理操作</div>
+            <button id="btn-update" class="btn-update">この請求額を新しい基準に更新する</button>
+            <button id="btn-reset" class="btn-gray">データをリセット</button>
+        </div>
+    </section>
 
-    <!-- アクションカード -->
-    <div class="card">
-        <div class="label">管理操作</div>
-        <button class="btn-update" onclick="updateBaseAmount()">この請求額を新しい基準に更新する</button>
-        <button style="background-color: #868e96; margin-top: 8px;" onclick="resetData()">データをリセット</button>
-    </div>
+    <!-- ② 内訳確認 -->
+    <section id="tab-items" class="tab-panel">
+        <div class="card">
+            <div class="label">直近の解析で読み取った内訳</div>
+            <div id="items-list"></div>
+            <div id="items-total-wrap"></div>
+        </div>
+    </section>
 
-    <!-- 読み取り・詳細ログ -->
-    <div class="card">
-        <div class="label">読み取った内訳・メモ</div>
-        <div id="memo-log" class="history-box">まだデータがありません。</div>
-    </div>
+    <!-- ③ 過去の履歴 -->
+    <section id="tab-history" class="tab-panel">
+        <div id="history-list"></div>
+    </section>
 </div>
 
+<nav class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-calc"><span class="icon">🧮</span>計算・入力</button>
+    <button class="tab-btn" data-tab="tab-items"><span class="icon">📋</span>内訳確認</button>
+    <button class="tab-btn" data-tab="tab-history"><span class="icon">🕘</span>過去の履歴</button>
+</nav>
+
 <script>
-    // 初期データの読み込み（localStorageを使用）
-    let appData = JSON.parse(localStorage.getItem('claim_app_data')) || {
-        baseAmount: 3770,      // 前回の基準額
-        currentTotal: 0,       // 今回の合計請求額
-        memo: "初期状態"
-    };
+    const STORAGE_KEY = 'claim_app_data';
+    const DEFAULT_BASE = 3770;
 
-    function updateDisplay() {
-        document.getElementById('base-amount').innerText = `¥${appData.baseAmount.toLocaleString()}`;
-        document.getElementById('current-total').innerText = `¥${appData.currentTotal.toLocaleString()}`;
-        
-        let diff = appData.currentTotal - appData.baseAmount;
-        if (diff < 0) diff = 0; // マイナス防止
-        document.getElementById('diff-amount').innerText = `¥${diff.toLocaleString()}`;
-        document.getElementById('memo-log').innerText = appData.memo;
+    function defaultData() {
+        return { baseAmount: DEFAULT_BASE, currentTotal: 0, items: [], memo: '', history: [] };
     }
 
-    // テキストから数値を自動抽出して計算する関数
-    function parseAndCalculate() {
-        const text = document.getElementById('input-text').value;
-        if (!text.trim()) {
-            alert('テキストを入力してください。');
-            return;
+    // ---------- 保存・読み込み（localStorage） ----------
+    function loadData() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return defaultData();
+            const d = JSON.parse(raw);
+            const base = defaultData();
+            return {
+                baseAmount: Number.isFinite(d.baseAmount) ? d.baseAmount : base.baseAmount,
+                currentTotal: Number.isFinite(d.currentTotal) ? d.currentTotal : 0,
+                items: Array.isArray(d.items) ? d.items : [],
+                memo: typeof d.memo === 'string' ? d.memo : '',
+                history: Array.isArray(d.history) ? d.history : []
+            };
+        } catch (e) {
+            return defaultData();
         }
-
-        // テキスト中のすべての数字（カンマ区切り対応）を抽出
-        // 「合計」付近の数字や、円マーク付きの数字を賢く探す、あるいは「合計」の直後の数字を優先する
-        let total = extractTotalAmount(text);
-
-        if (total === null) {
-            alert('金額を自動で検出できませんでした。テキストの内容を確認してください。');
-            return;
-        }
-
-        appData.currentTotal = total;
-        appData.memo = text;
-        saveAndRefresh();
     }
 
-    // テキストから合計金額を抽出するロジック
-    function extractTotalAmount(text) {
-        // 全角数字・全角カンマを半角に正規化
-        const norm = text
+    function saveData() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+        } catch (e) {
+            alert('データを保存できませんでした。ブラウザの設定（プライベートブラウズなど）を確認してください。');
+        }
+    }
+
+    let appData = loadData();
+
+    // ---------- テキスト解析 ----------
+    const KEYWORD = /(?:請求分累計|総合計|累計|合計|総額|トータル)/;
+    const KEYWORD_G = /(?:請求分累計|総合計|累計|合計|総額|トータル)/g;
+    // 金額表現: 「¥7,848」「￥7,848」または「7,848円」（「2026年」「11月」などの日付は含まない）
+    const AMOUNT_SRC = '(?:[¥￥]\\s*(\\d[\\d,]*))|(?:(\\d[\\d,]*)\\s*円)';
+
+    function toNum(s) { return parseInt(s.replace(/,/g, ''), 10); }
+
+    function normalizeText(text) {
+        return text
             .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
-            .replace(/[，、](?=\d{3})/g, ',')
-            .replace(/，/g, ',');
+            .replace(/，/g, ',')
+            .replace(/\r/g, '');
+    }
 
-        const toNum = s => parseInt(s.replace(/,/g, ''), 10);
-        const KEYWORD = /(?:請求分累計|累計|総合計|合計|総額|トータル)/g;
-        // 金額表現: 「¥7,848」「￥7,848」または「7,848円」（日付の「2026年」「11月」「14日」は含まない）
-        const AMOUNT = /(?:[¥￥]\s*(\d[\d,]*))|(?:(\d[\d,]*)\s*円)/g;
-
-        // 1) 「累計」「合計」などのキーワードがある行から、キーワード直後の金額を探す（最後に出てくる行を優先）
-        const lines = norm.split(/\n/);
+    // 「累計」「合計」などのキーワード直後の金額を探す（最後に出てくる行を優先）
+    function extractKeywordTotal(norm) {
         let found = null;
-        for (const line of lines) {
-            KEYWORD.lastIndex = 0;
+        for (const line of norm.split('\n')) {
+            KEYWORD_G.lastIndex = 0;
             let kw, lastKwEnd = -1;
-            while ((kw = KEYWORD.exec(line)) !== null) {
+            while ((kw = KEYWORD_G.exec(line)) !== null) {
                 lastKwEnd = kw.index + kw[0].length;
             }
             if (lastKwEnd < 0) continue;
 
             const rest = line.slice(lastKwEnd);
-            AMOUNT.lastIndex = 0;
-            const m = AMOUNT.exec(rest);
+            const m = new RegExp(AMOUNT_SRC).exec(rest);
             if (m) {
                 found = toNum(m[1] || m[2]);
                 continue;
             }
             // 「合計：7848」のように円や¥が付かない場合は、日付(年月日)以外の最初の数字を採用
-            const bare = rest.match(/(\d[\d,]*)(?!\s*[年月日時分])/);
-            if (bare && toNum(bare[1]) > 0) {
-                found = toNum(bare[1]);
-            }
+            const bare = rest.match(/(\d[\d,]*)(?!\s*[年月日時分\d])/);
+            if (bare && toNum(bare[1]) > 0) found = toNum(bare[1]);
         }
-        if (found !== null) return found;
-
-        // 2) キーワードがない場合: 「円」「¥」が付いた金額のうち、最後のものを合計とみなす
-        let last = null, match;
-        AMOUNT.lastIndex = 0;
-        while ((match = AMOUNT.exec(norm)) !== null) {
-            last = toNum(match[1] || match[2]);
-        }
-        return last;
+        return found;
     }
 
-    // 基準額を今回の合計に更新するボタン
+    // 行の中から「項目名 + 金額」を取り出す
+    function cleanLabel(raw) {
+        let label = raw
+            .replace(/^[\s\-・*•●○▪■□▶▷>＞→]+/, '')
+            .replace(/[\s:：=＝\-－ー~〜]+$/, '')
+            .trim();
+        // 片側だけの括弧を取り除く
+        const open = (label.match(/[（(]/g) || []).length;
+        const close = (label.match(/[）)]/g) || []).length;
+        if (open > close) label = label.replace(/[（(]/, '');
+        if (close > open) label = label.replace(/[）)]/, '');
+        return label.replace(/^内訳\s*[:：]\s*/, '').trim();
+    }
+
+    function extractItems(norm) {
+        const items = [];
+        for (const line of norm.split('\n')) {
+            // 「、」「／」「;」で区切って1行に複数項目があっても拾う
+            for (const seg of line.split(/[、／;；]/)) {
+                const re = new RegExp(AMOUNT_SRC, 'g');
+                let m, prevEnd = 0;
+                while ((m = re.exec(seg)) !== null) {
+                    const rawLabel = seg.slice(prevEnd, m.index);
+                    prevEnd = m.index + m[0].length;
+                    if (KEYWORD.test(rawLabel)) continue; // 合計系は内訳に含めない
+                    items.push({ name: cleanLabel(rawLabel), amount: toNum(m[1] || m[2]) });
+                }
+            }
+        }
+        return items;
+    }
+
+    // 解析のメイン: { total, items } を返す。金額が見つからなければ null
+    function parseClaimText(text) {
+        const norm = normalizeText(text);
+        let items = extractItems(norm);
+        let total = extractKeywordTotal(norm);
+
+        if (total === null) {
+            // キーワードがない場合: 最後の金額が他の合計と一致すれば合計、そうでなければ全項目の合計
+            if (items.length >= 2) {
+                const last = items[items.length - 1];
+                const sumOthers = items.slice(0, -1).reduce((a, b) => a + b.amount, 0);
+                if (last.amount === sumOthers && last.name === '') {
+                    total = last.amount;
+                    items = items.slice(0, -1);
+                }
+            }
+            if (total === null && items.length > 0) {
+                total = items.reduce((a, b) => a + b.amount, 0);
+            }
+        }
+        if (total === null) return null;
+
+        items = items.map(it => ({ name: it.name || '（項目名なし）', amount: it.amount }));
+        return { total, items };
+    }
+
+    // ---------- 表示 ----------
+    const yen = n => `¥${n.toLocaleString('ja-JP')}`;
+    const $ = id => document.getElementById(id);
+
+    function renderCalc() {
+        $('base-amount').textContent = yen(appData.baseAmount);
+        $('current-total').textContent = yen(appData.currentTotal);
+        const diff = Math.max(0, appData.currentTotal - appData.baseAmount);
+        $('diff-amount').textContent = yen(diff);
+    }
+
+    function renderItems() {
+        const list = $('items-list');
+        const wrap = $('items-total-wrap');
+        list.textContent = '';
+        wrap.textContent = '';
+
+        if (appData.currentTotal === 0 && appData.items.length === 0) {
+            const e = document.createElement('div');
+            e.className = 'empty';
+            e.textContent = 'まだ解析データがありません。「計算・入力」タブでテキストを読み取ってください。';
+            list.appendChild(e);
+            return;
+        }
+
+        if (appData.items.length === 0) {
+            const e = document.createElement('div');
+            e.className = 'empty';
+            e.textContent = '内訳の項目は読み取れませんでした（合計のみ）。';
+            list.appendChild(e);
+        }
+        appData.items.forEach(it => {
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            const n = document.createElement('div');
+            n.className = 'item-name';
+            n.textContent = it.name;
+            const a = document.createElement('div');
+            a.className = 'item-amount';
+            a.textContent = yen(it.amount);
+            row.append(n, a);
+            list.appendChild(row);
+        });
+
+        const total = document.createElement('div');
+        total.className = 'total-row';
+        const tl = document.createElement('span');
+        tl.textContent = '合計請求分';
+        const ta = document.createElement('span');
+        ta.className = 'amount';
+        ta.textContent = yen(appData.currentTotal);
+        total.append(tl, ta);
+        wrap.appendChild(total);
+
+        const sum = appData.items.reduce((a, b) => a + b.amount, 0);
+        if (appData.items.length > 0 && sum !== appData.currentTotal) {
+            const note = document.createElement('div');
+            note.className = 'note warn';
+            note.textContent = `※ 読み取った内訳の合計は ${yen(sum)} で、テキスト中の合計と一致しません。`;
+            wrap.appendChild(note);
+        }
+    }
+
+    function formatDate(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return iso;
+        const p = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+
+    function renderHistory() {
+        const box = $('history-list');
+        box.textContent = '';
+        if (appData.history.length === 0) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const e = document.createElement('div');
+            e.className = 'empty';
+            e.textContent = 'まだ履歴がありません。「基準に更新」するとここに記録されます。';
+            card.appendChild(e);
+            box.appendChild(card);
+            return;
+        }
+        // 新しい順（降順）
+        const sorted = appData.history.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+        sorted.forEach(h => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const date = document.createElement('div');
+            date.className = 'history-date';
+            date.textContent = formatDate(h.date);
+            const grid = document.createElement('div');
+            grid.className = 'history-grid';
+            const cells = [
+                ['請求確定額', yen(h.confirmed), ''],
+                ['今回増加分', yen(h.increase), 'inc'],
+                ['旧基準額', yen(h.oldBase), '']
+            ];
+            cells.forEach(([lab, val, cls]) => {
+                const c = document.createElement('div');
+                const l = document.createElement('div');
+                l.className = 'label';
+                l.textContent = lab;
+                const v = document.createElement('div');
+                v.className = 'big' + (cls ? ' ' + cls : '');
+                v.textContent = val;
+                c.append(l, v);
+                grid.appendChild(c);
+            });
+            card.append(date, grid);
+            box.appendChild(card);
+        });
+    }
+
+    function renderAll() {
+        renderCalc();
+        renderItems();
+        renderHistory();
+    }
+
+    // ---------- 操作 ----------
+    function parseAndCalculate() {
+        const text = $('input-text').value;
+        if (!text.trim()) {
+            alert('テキストを入力してください。');
+            return;
+        }
+        const result = parseClaimText(text);
+        if (result === null) {
+            alert('金額を自動で検出できませんでした。テキストの内容を確認してください。');
+            return;
+        }
+        appData.currentTotal = result.total;
+        appData.items = result.items;
+        appData.memo = text;
+        saveData();
+        renderAll();
+    }
+
     function updateBaseAmount() {
         if (appData.currentTotal === 0) {
             alert('新しい請求額が読み込まれていません。');
             return;
         }
-        if (confirm(`前回の基準額を [ ¥${appData.currentTotal.toLocaleString()} ] に更新しますか？\n（次回の差額計算の基準がここから始まります）`)) {
-            appData.baseAmount = appData.currentTotal;
-            saveAndRefresh();
-            alert('基準額を更新しました！');
-        }
+        const diff = Math.max(0, appData.currentTotal - appData.baseAmount);
+        const msg = `前回の基準額を [ ${yen(appData.currentTotal)} ] に更新しますか？\n今回の増加分: ${yen(diff)}\n（次回の差額計算の基準がここから始まります）`;
+        if (!confirm(msg)) return;
+
+        appData.history.push({
+            date: new Date().toISOString(),
+            confirmed: appData.currentTotal,
+            increase: diff,
+            oldBase: appData.baseAmount
+        });
+        appData.baseAmount = appData.currentTotal;
+        saveData();
+        renderAll();
+        alert('基準額を更新しました！履歴に記録しました。');
     }
 
     function resetData() {
-        if (confirm('データをリセットしますか？')) {
-            appData = { baseAmount: 3770, currentTotal: 0, memo: "リセットされました" };
-            localStorage.removeItem('claim_app_data');
-            updateDisplay();
-        }
+        if (!confirm('すべてのデータ（基準額・内訳・履歴）をリセットしますか？')) return;
+        appData = defaultData();
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        $('input-text').value = '';
+        renderAll();
     }
 
-    function saveAndRefresh() {
-        localStorage.setItem('claim_app_data', JSON.stringify(appData));
-        updateDisplay();
+    // ---------- タブ切り替え ----------
+    function switchTab(id) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === id));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+        window.scrollTo(0, 0);
     }
+
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    $('btn-parse').addEventListener('click', parseAndCalculate);
+    $('btn-update').addEventListener('click', updateBaseAmount);
+    $('btn-reset').addEventListener('click', resetData);
 
     // 起動時に表示を更新
-    updateDisplay();
+    renderAll();
 </script>
 
 </body>
