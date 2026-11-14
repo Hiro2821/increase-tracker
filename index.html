@@ -4,202 +4,441 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#f8f9fa">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
     <title>請求額 増加チェッカー</title>
     <style>
+        /* ==========================================================
+           Design tokens
+           ========================================================== */
         :root {
-            --primary-color: #ff6b6b;
-            --primary-dark: #e05252;
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-main: #333333;
-            --text-sub: #666666;
-            --border-color: #e0e0e0;
-            --tab-height: 62px;
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --label: #1d1d1f;
+            --label-2: #6e6e73;
+            --label-3: #a1a1a6;
+            --hairline: rgba(60, 60, 67, 0.12);
+            --fill: rgba(120, 120, 128, 0.12);
+            --fill-press: rgba(120, 120, 128, 0.2);
+            --accent: #0071e3;
+            --accent-press: #0062c4;
+            --accent-soft: rgba(0, 113, 227, 0.1);
+            --on-accent: #ffffff;
+            --danger: #d70015;
+            --warn: #b25000;
+            --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+            --nav-bg: rgba(255, 255, 255, 0.78);
+            --overlay: rgba(0, 0, 0, 0.32);
+
+            --radius-lg: 22px;
+            --radius: 16px;
+            --radius-sm: 12px;
+            --tab-h: 56px;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
         }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #000000;
+                --surface: #1c1c1e;
+                --label: #f5f5f7;
+                --label-2: #a1a1a6;
+                --label-3: #6e6e73;
+                --hairline: rgba(84, 84, 88, 0.5);
+                --fill: rgba(120, 120, 128, 0.24);
+                --fill-press: rgba(120, 120, 128, 0.36);
+                --accent: #2997ff;
+                --accent-press: #0a84ff;
+                --accent-soft: rgba(41, 151, 255, 0.16);
+                --on-accent: #ffffff;
+                --danger: #ff453a;
+                --warn: #ff9f0a;
+                --shadow: none;
+                --nav-bg: rgba(28, 28, 30, 0.78);
+                --overlay: rgba(0, 0, 0, 0.55);
+            }
+        }
+
+        /* ==========================================================
+           Base
+           ========================================================== */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        [hidden] { display: none !important; }
+        html { -webkit-text-size-adjust: 100%; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
             margin: 0;
-            padding: 16px 16px calc(var(--tab-height) + env(safe-area-inset-bottom) + 24px);
-            display: flex;
-            justify-content: center;
+            font-family: var(--font);
+            font-size: 15px;
+            line-height: 1.6;
+            letter-spacing: 0.01em;
+            color: var(--label);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            font-feature-settings: "palt";
         }
-        .container { width: 100%; max-width: 480px; }
-        h1 {
-            font-size: 1.2rem;
-            text-align: center;
-            margin: 4px 0 16px;
-        }
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 18px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 14px;
-        }
-        .label { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 4px; }
-        .value-large { font-size: 1.9rem; font-weight: bold; color: var(--primary-color); }
-        .value-normal { font-size: 1.15rem; font-weight: bold; }
-        .divider { height: 1px; background: var(--border-color); margin: 12px 0; }
-        .flex-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-        .center { text-align: center; }
+        button { font: inherit; color: inherit; letter-spacing: inherit; }
+        .num, .amt { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+        :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
 
+        .app {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: calc(env(safe-area-inset-top) + 20px) 20px calc(var(--tab-h) + env(safe-area-inset-bottom) + 36px);
+        }
+
+        /* ==========================================================
+           Header & navigation
+           ========================================================== */
+        .app-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+        .brand h1 { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: 0.005em; }
+        .brand p { margin: 4px 0 0; font-size: 13px; color: var(--label-2); }
+
+        .tabs {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+            display: flex;
+            padding: 0 8px env(safe-area-inset-bottom);
+            background: var(--nav-bg);
+            -webkit-backdrop-filter: saturate(180%) blur(24px);
+            backdrop-filter: saturate(180%) blur(24px);
+            border-top: 0.5px solid var(--hairline);
+        }
+        .tab {
+            flex: 1; height: var(--tab-h);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+            border: 0; background: transparent; cursor: pointer;
+            color: var(--label-3);
+            font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+            transition: color 0.2s var(--ease), transform 0.15s var(--ease);
+        }
+        .tab svg { width: 24px; height: 24px; }
+        .tab:active { transform: scale(0.94); }
+        .tab[aria-selected="true"] { color: var(--accent); }
+
+        svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* ==========================================================
+           Panels
+           ========================================================== */
+        .panel { display: none; }
+        .panel.active { display: block; animation: panel-in 0.32s var(--ease); }
+        @keyframes panel-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+        .calc-grid { display: flex; flex-direction: column; gap: 28px; }
+        .section-title { margin: 0 0 8px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); letter-spacing: 0.04em; }
+        .section-desc { margin: -2px 6px 12px; font-size: 13px; color: var(--label-2); }
+        .surface { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+
+        /* ---------- Hero ---------- */
+        .hero { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 26px 24px 8px; }
+        .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .eyebrow { font-size: 13px; font-weight: 600; color: var(--label-2); letter-spacing: 0.04em; }
+        .chip {
+            display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px;
+            font-size: 12px; font-weight: 600; background: var(--fill); color: var(--label-2);
+            transition: background 0.3s var(--ease), color 0.3s var(--ease);
+        }
+        .chip[data-state="up"] { background: var(--accent-soft); color: var(--accent); }
+        .hero-amount { margin: 10px 0 4px; font-size: clamp(46px, 14vw, 68px); line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; }
+        .hero-amount .cur { font-size: 0.5em; font-weight: 600; margin-right: 3px; letter-spacing: 0; color: var(--label-2); }
+        .hero-note { margin: 0; min-height: 22px; font-size: 13px; color: var(--label-2); }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; margin: 22px -24px 0; border-top: 0.5px solid var(--hairline); }
+        .stat { padding: 16px 24px 18px; }
+        .stat + .stat { border-left: 0.5px solid var(--hairline); }
+        .stat .label { font-size: 12px; color: var(--label-2); }
+        .stat .value { margin-top: 2px; font-size: 21px; font-weight: 600; letter-spacing: -0.005em; }
+        .stat .value .cur { font-size: 0.7em; font-weight: 500; margin-right: 2px; color: var(--label-2); }
+
+        /* ---------- Input ---------- */
+        .editor { padding: 8px; }
         textarea {
-            width: 100%;
-            height: 130px;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 16px; /* iOSで入力時にズームされないよう16px以上 */
-            resize: vertical;
-            font-family: inherit;
+            display: block; width: 100%; min-height: 156px; resize: vertical;
+            padding: 14px 14px; border: 0; border-radius: var(--radius-sm);
+            background: var(--fill); color: var(--label);
+            font: inherit; font-size: 16px; line-height: 1.65; letter-spacing: 0.01em;
+            transition: box-shadow 0.2s var(--ease), background 0.2s var(--ease);
         }
-        button {
-            width: 100%;
-            background-color: #333333;
-            color: white;
-            border: none;
-            padding: 13px;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
-            margin-top: 10px;
-            transition: background 0.2s;
-        }
-        button:active { background-color: #555555; }
-        button.btn-update { background-color: var(--primary-color); }
-        button.btn-update:active { background-color: var(--primary-dark); }
-        button.btn-gray { background-color: #868e96; }
-        button.btn-gray:active { background-color: #6c757d; }
+        textarea::placeholder { color: var(--label-3); }
+        textarea:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent); }
+        .editor-actions { display: flex; gap: 8px; margin-top: 8px; }
 
-        /* タブ */
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; animation: fade 0.2s ease; }
-        @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-        .tab-bar {
-            position: fixed;
-            left: 0; right: 0; bottom: 0;
-            display: flex;
-            background: rgba(255,255,255,0.96);
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid var(--border-color);
-            padding-bottom: env(safe-area-inset-bottom);
-            z-index: 10;
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 48px; padding: 0 18px; border: 0; border-radius: var(--radius-sm);
+            font-size: 16px; font-weight: 600; cursor: pointer; user-select: none;
+            transition: background 0.18s var(--ease), transform 0.15s var(--ease), opacity 0.2s var(--ease);
         }
-        .tab-btn {
-            flex: 1;
-            margin: 0;
-            height: var(--tab-height);
-            background: transparent;
-            color: var(--text-sub);
-            border-radius: 0;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-        }
-        .tab-btn:active { background: rgba(0,0,0,0.04); }
-        .tab-btn .icon { font-size: 1.3rem; line-height: 1; }
-        .tab-btn.active { color: var(--primary-color); }
+        .btn svg { width: 20px; height: 20px; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { flex: 1; background: var(--accent); color: var(--on-accent); }
+        .btn-primary:active { background: var(--accent-press); }
+        .btn-primary:disabled { opacity: 0.4; cursor: default; transform: none; }
+        .btn-ghost { background: var(--fill); color: var(--accent); }
+        .btn-ghost:active { background: var(--fill-press); }
 
-        /* 内訳リスト */
-        .item-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
+        /* ---------- Grouped list ---------- */
+        .row {
+            width: 100%; min-height: 56px; padding: 10px 16px;
+            display: flex; align-items: center; gap: 14px;
+            border: 0; background: transparent; text-align: left; cursor: pointer;
+            transition: background 0.15s var(--ease);
         }
-        .item-row:last-child { border-bottom: none; }
-        .item-name { font-size: 0.95rem; word-break: break-all; }
-        .item-amount { font-weight: bold; white-space: nowrap; }
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            padding-top: 14px;
-            margin-top: 4px;
-            border-top: 2px solid var(--text-main);
-            font-weight: bold;
-        }
-        .total-row .amount { font-size: 1.4rem; color: var(--primary-color); }
-        .note { font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; }
-        .note.warn { color: #d9480f; }
-        .empty { text-align: center; color: var(--text-sub); padding: 24px 0; font-size: 0.9rem; }
+        .row + .row { position: relative; }
+        .row + .row::before { content: ""; position: absolute; top: 0; left: 66px; right: 0; height: 0.5px; background: var(--hairline); }
+        .row:active { background: var(--fill); }
+        .row-icon { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+        .row-icon svg { width: 20px; height: 20px; }
+        .row-icon.danger { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+        .row-body { flex: 1; min-width: 0; }
+        .row-title { font-size: 16px; font-weight: 500; }
+        .row-title.danger { color: var(--danger); }
+        .row-sub { font-size: 12.5px; color: var(--label-2); margin-top: 1px; }
+        .row-chev { flex: none; width: 16px; height: 16px; color: var(--label-3); }
 
-        /* 履歴 */
-        .history-date { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px; }
-        .history-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .history-grid .big { font-size: 1.05rem; font-weight: bold; }
-        .history-grid .inc { color: var(--primary-color); }
+        /* ---------- Breakdown ---------- */
+        .item-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 15px 18px; }
+        .item-row + .item-row { border-top: 0.5px solid var(--hairline); }
+        .item-name { min-width: 0; word-break: break-all; }
+        .item-amount { flex: none; font-weight: 500; }
+        .item-row.total { background: var(--fill); align-items: center; padding-top: 18px; padding-bottom: 18px; }
+        .item-row.total .item-name { font-weight: 600; }
+        .item-row.total .item-amount { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+        .footnote { display: flex; gap: 8px; margin: 12px 8px 0; font-size: 12.5px; line-height: 1.55; color: var(--warn); }
+        .footnote svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+
+        /* ---------- History ---------- */
+        .hist-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; }
+        .hist-row + .hist-row { border-top: 0.5px solid var(--hairline); }
+        .hist-date { font-size: 15px; font-weight: 500; }
+        .hist-meta { margin-top: 2px; font-size: 12.5px; color: var(--label-2); }
+        .hist-inc { flex: none; text-align: right; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; color: var(--accent); }
+        .hist-inc.zero { color: var(--label-3); }
+        .hist-inc small { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: var(--label-2); }
+
+        /* ---------- Empty ---------- */
+        .empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 44px 28px; color: var(--label-2); }
+        .empty .badge { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; background: var(--fill); color: var(--label-3); margin-bottom: 14px; }
+        .empty .badge svg { width: 28px; height: 28px; }
+        .empty strong { display: block; color: var(--label); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .empty p { margin: 0; font-size: 13.5px; max-width: 26em; }
+
+        /* ---------- Dialog & toast ---------- */
+        .overlay {
+            position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center;
+            padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+            background: var(--overlay);
+            -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+            opacity: 0; transition: opacity 0.25s var(--ease);
+        }
+        .overlay[hidden] { display: none; }
+        .overlay.open { opacity: 1; }
+        .sheet {
+            width: 100%; max-width: 420px; padding: 22px 20px 16px;
+            background: var(--surface); border-radius: 26px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            transform: translateY(24px) scale(0.98); transition: transform 0.35s var(--ease);
+        }
+        .overlay.open .sheet { transform: none; }
+        .sheet h2 { margin: 0; font-size: 19px; font-weight: 700; text-align: center; }
+        .sheet p { margin: 6px 0 0; font-size: 14px; color: var(--label-2); text-align: center; }
+        .sheet dl { margin: 16px 0 0; padding: 4px 14px; border-radius: var(--radius-sm); background: var(--fill); }
+        .sheet dl:empty { display: none; }
+        .sheet dl div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 14.5px; }
+        .sheet dl div + div { border-top: 0.5px solid var(--hairline); }
+        .sheet dt { color: var(--label-2); }
+        .sheet dd { margin: 0; font-weight: 600; }
+        .sheet-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+        .sheet-actions .btn { width: 100%; flex: none; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:active { opacity: 0.85; }
+
+        .toast {
+            position: fixed; left: 50%; z-index: 60;
+            top: calc(env(safe-area-inset-top) + 12px);
+            width: max-content; max-width: calc(100vw - 32px); padding: 11px 18px; white-space: normal;
+            border-radius: 999px; background: rgba(29, 29, 31, 0.92); color: #fff; font-size: 14px; font-weight: 500; text-align: center;
+            -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+            opacity: 0; transform: translate(-50%, -12px); pointer-events: none;
+            transition: opacity 0.25s var(--ease), transform 0.35s var(--ease);
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+        @media (prefers-color-scheme: dark) { .toast { background: rgba(60, 60, 64, 0.92); } }
+
+        /* ==========================================================
+           Tablet / desktop
+           ========================================================== */
+        @media (min-width: 768px) {
+            .app { padding: 44px 32px 72px; }
+            .app-header { margin-bottom: 32px; }
+            .brand h1 { font-size: 34px; }
+            .brand p { font-size: 14px; }
+
+            .tabs {
+                position: static; padding: 3px; gap: 2px; border: 0; border-radius: 12px;
+                background: var(--fill); -webkit-backdrop-filter: none; backdrop-filter: none; flex: none;
+            }
+            .tab {
+                flex: none; flex-direction: row; gap: 7px; height: 36px; padding: 0 16px; border-radius: 9px;
+                font-size: 13.5px; color: var(--label-2);
+            }
+            .tab svg { width: 18px; height: 18px; }
+            .tab[aria-selected="true"] { background: var(--surface); color: var(--label); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+            .tab:active { transform: scale(0.97); }
+
+            .toast { top: 24px; }
+            .overlay { align-items: center; padding: 24px; }
+            .panel-narrow { max-width: 720px; margin-left: auto; margin-right: auto; }
+            .calc-grid { max-width: 680px; margin-left: auto; margin-right: auto; }
+        }
+        @media (min-width: 960px) {
+            .calc-grid {
+                max-width: none;
+                display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start;
+                grid-template-areas: "hero input" "manage input";
+            }
+            .area-hero { grid-area: hero; }
+            .area-input { grid-area: input; }
+            .area-manage { grid-area: manage; }
+            .hero { padding: 32px 32px 8px; }
+            .stats { margin-left: -32px; margin-right: -32px; }
+            .stat { padding-left: 32px; padding-right: 32px; }
+        }
+        @media (hover: hover) {
+            .btn-primary:not(:disabled):hover { background: var(--accent-press); }
+            .btn-ghost:hover { background: var(--fill-press); }
+            .row:hover { background: var(--fill); }
+            .tab:not([aria-selected="true"]):hover { color: var(--label); }
+            .btn-danger:hover { opacity: 0.9; }
+        }
+        @media (max-width: 359px) {
+            .app { padding-left: 14px; padding-right: 14px; }
+            .row { gap: 10px; padding-left: 12px; padding-right: 12px; }
+            .row + .row::before { left: 56px; }
+            .row-title { font-size: 15px; }
+            .hero { padding-left: 18px; padding-right: 18px; }
+            .stats { margin-left: -18px; margin-right: -18px; }
+            .stat { padding-left: 18px; padding-right: 18px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>請求額 増加チェッカー</h1>
+<div class="app">
+    <header class="app-header">
+        <div class="brand">
+            <h1>請求額 増加チェッカー</h1>
+            <p>前回の基準額からの増加分を、すぐに確認</p>
+        </div>
 
-    <!-- ① 計算・入力 -->
-    <section id="tab-calc" class="tab-panel active">
-        <div class="card">
-            <div class="flex-row">
-                <div>
-                    <div class="label">前回の基準額（確定済）</div>
-                    <div id="base-amount" class="value-normal">¥0</div>
+        <nav class="tabs" role="tablist" aria-label="画面の切り替え">
+            <button class="tab" role="tab" id="t-tab-calc" data-tab="tab-calc" aria-selected="true" aria-controls="tab-calc">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3.2"/><path d="M8.5 7.6h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
+                計算・入力
+            </button>
+            <button class="tab" role="tab" id="t-tab-items" data-tab="tab-items" aria-selected="false" aria-controls="tab-items">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01"/></svg>
+                内訳確認
+            </button>
+            <button class="tab" role="tab" id="t-tab-history" data-tab="tab-history" aria-selected="false" aria-controls="tab-history">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.2V12l3.2 2"/></svg>
+                過去の履歴
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- ① 計算・入力 -->
+        <section id="tab-calc" class="panel active" role="tabpanel" aria-labelledby="t-tab-calc">
+            <div class="calc-grid">
+                <div class="hero area-hero">
+                    <div class="hero-top">
+                        <span class="eyebrow">今回親に請求する金額</span>
+                        <span id="chip" class="chip" data-state="idle">未計算</span>
+                    </div>
+                    <div class="hero-amount amt"><span class="cur">¥</span><span class="num" id="diff-amount">0</span></div>
+                    <p id="hero-note" class="hero-note"></p>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="label">前回の基準額（確定済）</div>
+                            <div class="value amt"><span class="cur">¥</span><span class="num" id="base-amount">0</span></div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">今回の請求合計</div>
+                            <div class="value amt"><span class="cur">¥</span><span class="num" id="current-total">0</span></div>
+                        </div>
+                    </div>
                 </div>
-                <div style="text-align: right;">
-                    <div class="label">今回の請求合計</div>
-                    <div id="current-total" class="value-normal">¥0</div>
+
+                <div class="input-wrap area-input">
+                    <h2 class="section-title">テキストから読み取る</h2>
+                    <p class="section-desc">Geminiなどの請求分テキストを貼り付けます。</p>
+                    <div class="surface editor">
+                        <textarea id="input-text" aria-label="請求分のテキスト" placeholder="例：&#10;- 食費（請求分）：6,088円&#10;- 教養・教育：1,760円&#10;合計：7,848円"></textarea>
+                        <div class="editor-actions">
+                            <button class="btn btn-ghost" id="btn-paste" type="button">
+                                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="13" height="16.5" rx="2.6"/><path d="M9 4.2h6v2.6H9z"/></svg>
+                                貼り付け
+                            </button>
+                            <button class="btn btn-primary" id="btn-parse" type="button" disabled>読み取って計算</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="manage-wrap area-manage">
+                    <h2 class="section-title">基準額の管理</h2>
+                    <div class="surface">
+                        <button class="row" id="btn-update" type="button">
+                            <span class="row-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.6"/></svg></span>
+                            <span class="row-body">
+                                <span class="row-title">この請求額を新しい基準にする</span>
+                                <span class="row-sub" style="display:block">現在の請求合計を確定し、履歴に記録します</span>
+                            </span>
+                            <svg class="i row-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+                        <button class="row" id="btn-reset" type="button">
+                            <span class="row-icon danger"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5"/><path d="M4.2 4.2v4.3h4.3"/></svg></span>
+                            <span class="row-body"><span class="row-title danger">データをリセット</span></span>
+                            <svg class="i row-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="divider"></div>
-            <div class="center" style="padding: 6px 0;">
-                <div class="label">今回親に請求する金額（増加分）</div>
-                <div id="diff-amount" class="value-large">¥0</div>
-            </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <div class="label">Geminiなどの出力テキストを貼り付け</div>
-            <textarea id="input-text" placeholder="例：&#10;- 食費（請求分）：6,088円&#10;- 教養・教育：1,760円&#10;合計：7,848円"></textarea>
-            <button id="btn-parse">数値を読み取って計算</button>
-        </div>
+        <!-- ② 内訳確認 -->
+        <section id="tab-items" class="panel panel-narrow" role="tabpanel" aria-labelledby="t-tab-items" hidden>
+            <h2 class="section-title">直近の解析で読み取った内訳</h2>
+            <div class="surface" id="items-card"></div>
+            <div id="items-note"></div>
+        </section>
 
-        <div class="card">
-            <div class="label">管理操作</div>
-            <button id="btn-update" class="btn-update">この請求額を新しい基準に更新する</button>
-            <button id="btn-reset" class="btn-gray">データをリセット</button>
-        </div>
-    </section>
-
-    <!-- ② 内訳確認 -->
-    <section id="tab-items" class="tab-panel">
-        <div class="card">
-            <div class="label">直近の解析で読み取った内訳</div>
-            <div id="items-list"></div>
-            <div id="items-total-wrap"></div>
-        </div>
-    </section>
-
-    <!-- ③ 過去の履歴 -->
-    <section id="tab-history" class="tab-panel">
-        <div id="history-list"></div>
-    </section>
+        <!-- ③ 過去の履歴 -->
+        <section id="tab-history" class="panel panel-narrow" role="tabpanel" aria-labelledby="t-tab-history" hidden>
+            <h2 class="section-title" id="history-title">基準額の更新履歴</h2>
+            <div class="surface" id="history-card"></div>
+        </section>
+    </main>
 </div>
 
-<nav class="tab-bar">
-    <button class="tab-btn active" data-tab="tab-calc"><span class="icon">🧮</span>計算・入力</button>
-    <button class="tab-btn" data-tab="tab-items"><span class="icon">📋</span>内訳確認</button>
-    <button class="tab-btn" data-tab="tab-history"><span class="icon">🕘</span>過去の履歴</button>
-</nav>
+<!-- 確認ダイアログ -->
+<div class="overlay" id="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby="dlg-msg">
+        <h2 id="dlg-title"></h2>
+        <p id="dlg-msg"></p>
+        <dl id="dlg-rows"></dl>
+        <div class="sheet-actions">
+            <button class="btn btn-primary" id="dlg-ok" type="button"></button>
+            <button class="btn btn-ghost" id="dlg-cancel" type="button">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
     const STORAGE_KEY = 'claim_app_data';
@@ -232,7 +471,7 @@
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
         } catch (e) {
-            alert('データを保存できませんでした。ブラウザの設定（プライベートブラウズなど）を確認してください。');
+            showToast('保存できませんでした（プライベートブラウズ中の可能性があります）');
         }
     }
 
@@ -335,117 +574,155 @@
         return { total, items };
     }
 
-    // ---------- 表示 ----------
-    const yen = n => `¥${n.toLocaleString('ja-JP')}`;
+    // ---------- 表示ユーティリティ ----------
     const $ = id => document.getElementById(id);
+    const fmt = n => n.toLocaleString('ja-JP');
+    const yen = n => `¥${fmt(n)}`;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+    function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+    function el(tag, className, text) {
+        const e = document.createElement(tag);
+        if (className) e.className = className;
+        if (text !== undefined) e.textContent = text;
+        return e;
+    }
+
+    // 数字をなめらかにカウントさせて更新する
+    function setNumber(id, value) {
+        const node = $(id);
+        // アニメーション中に再更新されても、いま表示している数字から続けて動かす
+        const from = node._shown !== undefined ? node._shown : node._value;
+        node._value = value;
+        if (node._raf) cancelAnimationFrame(node._raf);
+        if (from === undefined || from === value || reduceMotion.matches) {
+            node._shown = value;
+            node.textContent = fmt(value);
+            return;
+        }
+        const start = performance.now();
+        const duration = 520;
+        const tick = now => {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            node._shown = Math.round(from + (value - from) * eased);
+            node.textContent = fmt(node._shown);
+            if (t < 1) node._raf = requestAnimationFrame(tick);
+        };
+        node._raf = requestAnimationFrame(tick);
+    }
+
+    // 初回表示は静かに（アニメーションなし）
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function formatDate(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return String(iso);
+        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    const ICON_LIST = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01"/></svg>';
+    const ICON_CLOCK = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.2V12l3.2 2"/></svg>';
+    const ICON_WARN = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4.2M12 17.2h.01"/></svg>';
+
+    function emptyState(iconSvg, title, text) {
+        const box = el('div', 'empty');
+        const badge = el('div', 'badge');
+        badge.innerHTML = iconSvg; // 固定のSVGのみ
+        const body = el('div');
+        body.append(el('strong', '', title), el('p', '', text));
+        box.append(badge, body);
+        return box;
+    }
+
+    // ---------- 描画 ----------
     function renderCalc() {
-        $('base-amount').textContent = yen(appData.baseAmount);
-        $('current-total').textContent = yen(appData.currentTotal);
-        const diff = Math.max(0, appData.currentTotal - appData.baseAmount);
-        $('diff-amount').textContent = yen(diff);
+        const total = appData.currentTotal;
+        const base = appData.baseAmount;
+        const diff = Math.max(0, total - base);
+
+        setNumber('base-amount', base);
+        setNumber('current-total', total);
+        setNumber('diff-amount', diff);
+
+        const chip = $('chip');
+        const note = $('hero-note');
+        if (total === 0) {
+            chip.dataset.state = 'idle';
+            chip.textContent = '未計算';
+            note.textContent = 'テキストを読み取ると、ここに増加分が表示されます。';
+        } else if (total > base) {
+            chip.dataset.state = 'up';
+            chip.textContent = '増加あり';
+            note.textContent = `${yen(total)} − ${yen(base)} の差額です。`;
+        } else if (total === base) {
+            chip.dataset.state = 'flat';
+            chip.textContent = '変化なし';
+            note.textContent = '基準額と同じ金額です。';
+        } else {
+            chip.dataset.state = 'flat';
+            chip.textContent = '変化なし';
+            note.textContent = '基準額を下回っているため、増加分は ¥0 として扱います。';
+        }
     }
 
     function renderItems() {
-        const list = $('items-list');
-        const wrap = $('items-total-wrap');
-        list.textContent = '';
-        wrap.textContent = '';
+        const card = $('items-card');
+        const noteBox = $('items-note');
+        clear(card);
+        clear(noteBox);
 
         if (appData.currentTotal === 0 && appData.items.length === 0) {
-            const e = document.createElement('div');
-            e.className = 'empty';
-            e.textContent = 'まだ解析データがありません。「計算・入力」タブでテキストを読み取ってください。';
-            list.appendChild(e);
+            card.appendChild(emptyState(ICON_LIST, 'まだ内訳がありません', '「計算・入力」でテキストを読み取ると、項目ごとの金額がここに並びます。'));
             return;
         }
 
         if (appData.items.length === 0) {
-            const e = document.createElement('div');
-            e.className = 'empty';
-            e.textContent = '内訳の項目は読み取れませんでした（合計のみ）。';
-            list.appendChild(e);
+            card.appendChild(emptyState(ICON_LIST, '内訳は読み取れませんでした', '合計金額のみを読み取りました。'));
         }
         appData.items.forEach(it => {
-            const row = document.createElement('div');
-            row.className = 'item-row';
-            const n = document.createElement('div');
-            n.className = 'item-name';
-            n.textContent = it.name;
-            const a = document.createElement('div');
-            a.className = 'item-amount';
-            a.textContent = yen(it.amount);
-            row.append(n, a);
-            list.appendChild(row);
+            const row = el('div', 'item-row');
+            row.append(el('span', 'item-name', it.name), el('span', 'item-amount amt', yen(it.amount)));
+            card.appendChild(row);
         });
 
-        const total = document.createElement('div');
-        total.className = 'total-row';
-        const tl = document.createElement('span');
-        tl.textContent = '合計請求分';
-        const ta = document.createElement('span');
-        ta.className = 'amount';
-        ta.textContent = yen(appData.currentTotal);
-        total.append(tl, ta);
-        wrap.appendChild(total);
+        const total = el('div', 'item-row total');
+        total.append(el('span', 'item-name', '合計請求分'), el('span', 'item-amount amt', yen(appData.currentTotal)));
+        card.appendChild(total);
 
         const sum = appData.items.reduce((a, b) => a + b.amount, 0);
         if (appData.items.length > 0 && sum !== appData.currentTotal) {
-            const note = document.createElement('div');
-            note.className = 'note warn';
-            note.textContent = `※ 読み取った内訳の合計は ${yen(sum)} で、テキスト中の合計と一致しません。`;
-            wrap.appendChild(note);
+            const note = el('div', 'footnote');
+            const icon = el('span');
+            icon.innerHTML = ICON_WARN; // 固定のSVGのみ
+            note.append(icon.firstChild, el('span', '', `読み取った内訳の合計は ${yen(sum)} で、テキスト中の合計と一致しません。`));
+            noteBox.appendChild(note);
         }
     }
 
-    function formatDate(iso) {
-        const d = new Date(iso);
-        if (isNaN(d)) return iso;
-        const p = n => String(n).padStart(2, '0');
-        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-    }
-
     function renderHistory() {
-        const box = $('history-list');
-        box.textContent = '';
-        if (appData.history.length === 0) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            const e = document.createElement('div');
-            e.className = 'empty';
-            e.textContent = 'まだ履歴がありません。「基準に更新」するとここに記録されます。';
-            card.appendChild(e);
-            box.appendChild(card);
+        const card = $('history-card');
+        clear(card);
+        const count = appData.history.length;
+        $('history-title').textContent = count ? `基準額の更新履歴（${count}件）` : '基準額の更新履歴';
+
+        if (count === 0) {
+            card.appendChild(emptyState(ICON_CLOCK, 'まだ履歴がありません', '「この請求額を新しい基準にする」を実行すると、確定した金額と増加分がここに記録されます。'));
             return;
         }
         // 新しい順（降順）
         const sorted = appData.history.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
         sorted.forEach(h => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            const date = document.createElement('div');
-            date.className = 'history-date';
-            date.textContent = formatDate(h.date);
-            const grid = document.createElement('div');
-            grid.className = 'history-grid';
-            const cells = [
-                ['請求確定額', yen(h.confirmed), ''],
-                ['今回増加分', yen(h.increase), 'inc'],
-                ['旧基準額', yen(h.oldBase), '']
-            ];
-            cells.forEach(([lab, val, cls]) => {
-                const c = document.createElement('div');
-                const l = document.createElement('div');
-                l.className = 'label';
-                l.textContent = lab;
-                const v = document.createElement('div');
-                v.className = 'big' + (cls ? ' ' + cls : '');
-                v.textContent = val;
-                c.append(l, v);
-                grid.appendChild(c);
-            });
-            card.append(date, grid);
-            box.appendChild(card);
+            const row = el('div', 'hist-row');
+            const left = el('div');
+            left.append(
+                el('div', 'hist-date', formatDate(h.date)),
+                el('div', 'hist-meta amt', `確定額 ${yen(h.confirmed)}　旧基準 ${yen(h.oldBase)}`)
+            );
+            const right = el('div', 'hist-inc amt' + (h.increase > 0 ? '' : ' zero'));
+            right.append(document.createTextNode((h.increase > 0 ? '+' : '') + yen(h.increase)), el('small', '', '今回増加分'));
+            row.append(left, right);
+            card.appendChild(row);
         });
     }
 
@@ -455,16 +732,87 @@
         renderHistory();
     }
 
+    // ---------- トースト ----------
+    let toastTimer = null;
+    function showToast(message) {
+        const t = $('toast');
+        t.textContent = message;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    // ---------- 確認ダイアログ ----------
+    let dialogOpen = false;
+    function confirmDialog({ title, message, rows = [], okText = 'OK', destructive = false }) {
+        if (dialogOpen) return Promise.resolve(false);
+        dialogOpen = true;
+
+        const overlay = $('overlay');
+        const ok = $('dlg-ok');
+        const cancel = $('dlg-cancel');
+        const dl = $('dlg-rows');
+        const previouslyFocused = document.activeElement;
+
+        $('dlg-title').textContent = title;
+        $('dlg-msg').textContent = message;
+        clear(dl);
+        rows.forEach(([k, v]) => {
+            const d = el('div');
+            d.append(el('dt', '', k), el('dd', 'amt', v));
+            dl.appendChild(d);
+        });
+        ok.textContent = okText;
+        ok.className = 'btn ' + (destructive ? 'btn-danger' : 'btn-primary');
+
+        overlay.hidden = false;
+        requestAnimationFrame(() => overlay.classList.add('open'));
+        ok.focus({ preventScroll: true });
+
+        return new Promise(resolve => {
+            const finish = result => {
+                overlay.classList.remove('open');
+                ok.removeEventListener('click', onOk);
+                cancel.removeEventListener('click', onCancel);
+                overlay.removeEventListener('click', onBackdrop);
+                document.removeEventListener('keydown', onKey);
+                setTimeout(() => {
+                    overlay.hidden = true;
+                    dialogOpen = false;
+                    if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus({ preventScroll: true });
+                    resolve(result);
+                }, reduceMotion.matches ? 0 : 220);
+            };
+            const onOk = () => finish(true);
+            const onCancel = () => finish(false);
+            const onBackdrop = e => { if (e.target === overlay) finish(false); };
+            const onKey = e => {
+                if (e.key === 'Escape') finish(false);
+                if (e.key === 'Tab') {
+                    // フォーカスをダイアログ内に留める
+                    const f = [ok, cancel];
+                    const i = f.indexOf(document.activeElement);
+                    e.preventDefault();
+                    f[(i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();
+                }
+            };
+            ok.addEventListener('click', onOk);
+            cancel.addEventListener('click', onCancel);
+            overlay.addEventListener('click', onBackdrop);
+            document.addEventListener('keydown', onKey);
+        });
+    }
+
     // ---------- 操作 ----------
     function parseAndCalculate() {
         const text = $('input-text').value;
         if (!text.trim()) {
-            alert('テキストを入力してください。');
+            showToast('テキストを入力してください');
             return;
         }
         const result = parseClaimText(text);
         if (result === null) {
-            alert('金額を自動で検出できませんでした。テキストの内容を確認してください。');
+            showToast('金額を検出できませんでした。内容を確認してください');
             return;
         }
         appData.currentTotal = result.total;
@@ -472,16 +820,22 @@
         appData.memo = text;
         saveData();
         renderAll();
+        showToast(`読み取りました：合計 ${yen(result.total)}`);
     }
 
-    function updateBaseAmount() {
+    async function updateBaseAmount() {
         if (appData.currentTotal === 0) {
-            alert('新しい請求額が読み込まれていません。');
+            showToast('先にテキストを読み取ってください');
             return;
         }
         const diff = Math.max(0, appData.currentTotal - appData.baseAmount);
-        const msg = `前回の基準額を [ ${yen(appData.currentTotal)} ] に更新しますか？\n今回の増加分: ${yen(diff)}\n（次回の差額計算の基準がここから始まります）`;
-        if (!confirm(msg)) return;
+        const ok = await confirmDialog({
+            title: '新しい基準額に更新',
+            message: '次回の差額計算は、この金額を基準に始まります。',
+            rows: [['新しい基準額', yen(appData.currentTotal)], ['今回の増加分', yen(diff)], ['旧基準額', yen(appData.baseAmount)]],
+            okText: '更新する'
+        });
+        if (!ok) return;
 
         appData.history.push({
             date: new Date().toISOString(),
@@ -492,28 +846,70 @@
         appData.baseAmount = appData.currentTotal;
         saveData();
         renderAll();
-        alert('基準額を更新しました！履歴に記録しました。');
+        showToast('基準額を更新し、履歴に記録しました');
     }
 
-    function resetData() {
-        if (!confirm('すべてのデータ（基準額・内訳・履歴）をリセットしますか？')) return;
+    async function resetData() {
+        const ok = await confirmDialog({
+            title: 'データをリセット',
+            message: '基準額・内訳・履歴をすべて初期状態に戻します。この操作は取り消せません。',
+            okText: 'リセットする',
+            destructive: true
+        });
+        if (!ok) return;
         appData = defaultData();
         try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
         $('input-text').value = '';
+        syncParseButton();
         renderAll();
+        showToast('データをリセットしました');
+    }
+
+    async function pasteFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) { showToast('クリップボードが空です'); return; }
+            $('input-text').value = text;
+            syncParseButton();
+            showToast('貼り付けました');
+        } catch (e) {
+            // 権限がない環境では、入力欄を長押しして貼り付けてもらう
+            $('input-text').focus();
+            showToast('入力欄を長押しして貼り付けてください');
+        }
+    }
+
+    function syncParseButton() {
+        $('btn-parse').disabled = !$('input-text').value.trim();
     }
 
     // ---------- タブ切り替え ----------
     function switchTab(id) {
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === id));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
-        window.scrollTo(0, 0);
+        document.querySelectorAll('.panel').forEach(p => {
+            const active = p.id === id;
+            p.hidden = !active;
+            p.classList.toggle('active', active);
+        });
+        document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === id)));
+        window.scrollTo({ top: 0 });
     }
 
-    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    const tabs = Array.from(document.querySelectorAll('.tab'));
+    tabs.forEach((t, i) => {
+        t.addEventListener('click', () => switchTab(t.dataset.tab));
+        t.addEventListener('keydown', e => {
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+            next.focus();
+            switchTab(next.dataset.tab);
+        });
+    });
     $('btn-parse').addEventListener('click', parseAndCalculate);
     $('btn-update').addEventListener('click', updateBaseAmount);
     $('btn-reset').addEventListener('click', resetData);
+    $('btn-paste').addEventListener('click', pasteFromClipboard);
+    $('input-text').addEventListener('input', syncParseButton);
+    if (!navigator.clipboard || !navigator.clipboard.readText) $('btn-paste').hidden = true;
 
     // 起動時に表示を更新
     renderAll();
