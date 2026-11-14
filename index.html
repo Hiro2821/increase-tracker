@@ -194,34 +194,52 @@
         saveAndRefresh();
     }
 
-    // テキストから金額を抽出するロジック
+    // テキストから合計金額を抽出するロジック
     function extractTotalAmount(text) {
-        // 「合計」や「トータル」のあとの数値を優先的に探す
-        const totalMatch = text.match(/(?:合計|総額|トータル)[:：\s]*[¥￥]?([0-9,]+)/i);
-        if (totalMatch) {
-            return parseInt(totalMatch[1].replace(/,/g, ''), 10);
-        }
+        // 全角数字・全角カンマを半角に正規化
+        const norm = text
+            .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+            .replace(/[，、](?=\d{3})/g, ',')
+            .replace(/，/g, ',');
 
-        // 「請求分」の合計を探す、あるいはすべての「[¥￥]数字」を拾って「請求分」と書かれた行の数字を合計する
-        // ここではシンプルに、テキスト全体から「円」や「¥」がついた数字をリストアップして一番大きいもの、あるいは「合計」っぽいのを抽出
-        let numbers = [];
-        const regex = /[¥￥]?([0-9,]+)\s*円?/g;
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-            let num = parseInt(match[1].replace(/,/g, ''), 10);
-            if (num > 100) { // 少なすぎる数字（日付や個数など）を除外
-                numbers.push(num);
+        const toNum = s => parseInt(s.replace(/,/g, ''), 10);
+        const KEYWORD = /(?:請求分累計|累計|総合計|合計|総額|トータル)/g;
+        // 金額表現: 「¥7,848」「￥7,848」または「7,848円」（日付の「2026年」「11月」「14日」は含まない）
+        const AMOUNT = /(?:[¥￥]\s*(\d[\d,]*))|(?:(\d[\d,]*)\s*円)/g;
+
+        // 1) 「累計」「合計」などのキーワードがある行から、キーワード直後の金額を探す（最後に出てくる行を優先）
+        const lines = norm.split(/\n/);
+        let found = null;
+        for (const line of lines) {
+            KEYWORD.lastIndex = 0;
+            let kw, lastKwEnd = -1;
+            while ((kw = KEYWORD.exec(line)) !== null) {
+                lastKwEnd = kw.index + kw[0].length;
+            }
+            if (lastKwEnd < 0) continue;
+
+            const rest = line.slice(lastKwEnd);
+            AMOUNT.lastIndex = 0;
+            const m = AMOUNT.exec(rest);
+            if (m) {
+                found = toNum(m[1] || m[2]);
+                continue;
+            }
+            // 「合計：7848」のように円や¥が付かない場合は、日付(年月日)以外の最初の数字を採用
+            const bare = rest.match(/(\d[\d,]*)(?!\s*[年月日時分])/);
+            if (bare && toNum(bare[1]) > 0) {
+                found = toNum(bare[1]);
             }
         }
+        if (found !== null) return found;
 
-        if (numbers.length > 0) {
-            // もし「合計」が見つからず複数の数字がある場合、最後の数字か一番大きいものを合計とみなす（必要に応じて調整可能）
-            // 通常、Geminiに「合計金額を含めたテキストを作って」と頼むため、末尾か「合計」付近にあるはず。
-            // 安全のため、テキスト内に現れる最後の数字を暫定の合計、あるいはユーザーが明示した数値として採用
-            return numbers[numbers.length - 1];
+        // 2) キーワードがない場合: 「円」「¥」が付いた金額のうち、最後のものを合計とみなす
+        let last = null, match;
+        AMOUNT.lastIndex = 0;
+        while ((match = AMOUNT.exec(norm)) !== null) {
+            last = toNum(match[1] || match[2]);
         }
-
-        return null;
+        return last;
     }
 
     // 基準額を今回の合計に更新するボタン
