@@ -31,6 +31,7 @@
             --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
             --nav-bg: rgba(255, 255, 255, 0.78);
             --overlay: rgba(0, 0, 0, 0.32);
+            --cat-0: #0071e3; --cat-1: #5e5ce6; --cat-2: #30b0c7; --cat-3: #ff9f0a; --cat-4: #ff375f; --cat-5: #8e8e93;
 
             --radius-lg: 22px;
             --radius: 16px;
@@ -58,6 +59,7 @@
                 --shadow: none;
                 --nav-bg: rgba(28, 28, 30, 0.78);
                 --overlay: rgba(0, 0, 0, 0.55);
+                --cat-0: #2997ff; --cat-1: #7d7aff; --cat-2: #40c8e0; --cat-3: #ffb340; --cat-4: #ff6482; --cat-5: #98989d;
             }
         }
 
@@ -217,6 +219,33 @@
         .hist-inc.zero { color: var(--label-3); }
         .hist-inc small { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: var(--label-2); }
 
+        /* ---------- Category ---------- */
+        .hero-cats { margin: 0 -24px; padding: 16px 24px 14px; border-top: 0.5px solid var(--hairline); }
+        .hero-cats .label { font-size: 12px; color: var(--label-2); margin-bottom: 10px; }
+        .catbar { display: flex; gap: 3px; height: 10px; border-radius: 999px; overflow: hidden; }
+        .catbar span { display: block; flex: 1 1 0; min-width: 6px; }
+        .dot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+        .legend-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 14px; }
+        .legend-row:first-child { margin-top: 8px; }
+        .legend-row .nm { flex: 1; min-width: 0; word-break: break-all; }
+        .legend-row .am { flex: none; font-weight: 600; }
+
+        #cat-section { margin-bottom: 28px; }
+        .cat-card { padding: 18px 18px 4px; }
+        .cat-card .catbar { margin-bottom: 6px; }
+        .cat-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; }
+        .cat-row + .cat-row { border-top: 0.5px solid var(--hairline); }
+        .cat-main { flex: 1; min-width: 0; }
+        .cat-name { font-weight: 500; word-break: break-all; }
+        .cat-sub { font-size: 12.5px; color: var(--label-2); }
+        .cat-right { flex: none; text-align: right; }
+        .cat-amt { font-size: 17px; font-weight: 600; letter-spacing: -0.005em; }
+        .cat-delta { font-size: 12.5px; font-weight: 600; color: var(--accent); }
+        .cat-delta.neg { color: var(--label-2); }
+        .cat-delta.zero { color: var(--label-3); font-weight: 500; }
+        .cat-note { margin: 10px 8px 0; font-size: 12.5px; color: var(--label-2); }
+        .cat-note:empty { display: none; }
+
         /* ---------- Empty ---------- */
         .empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 44px 28px; color: var(--label-2); }
         .empty .badge { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; background: var(--fill); color: var(--label-3); margin-bottom: 14px; }
@@ -304,6 +333,7 @@
             .hero { padding: 32px 32px 8px; }
             .stats { margin-left: -32px; margin-right: -32px; }
             .stat { padding-left: 32px; padding-right: 32px; }
+            .hero-cats { margin-left: -32px; margin-right: -32px; padding-left: 32px; padding-right: 32px; }
         }
         @media (hover: hover) {
             .btn-primary:not(:disabled):hover { background: var(--accent-press); }
@@ -320,6 +350,7 @@
             .hero { padding-left: 18px; padding-right: 18px; }
             .stats { margin-left: -18px; margin-right: -18px; }
             .stat { padding-left: 18px; padding-right: 18px; }
+            .hero-cats { margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px; }
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -372,6 +403,11 @@
                             <div class="value amt"><span class="cur">¥</span><span class="num" id="current-total">0</span></div>
                         </div>
                     </div>
+                    <div class="hero-cats" id="hero-cats" hidden>
+                        <div class="label">カテゴリ別の内訳</div>
+                        <div class="catbar" id="hero-catbar" aria-hidden="true"></div>
+                        <div id="hero-catlist"></div>
+                    </div>
                 </div>
 
                 <div class="input-wrap area-input">
@@ -412,7 +448,12 @@
 
         <!-- ② 内訳確認 -->
         <section id="tab-items" class="panel panel-narrow" role="tabpanel" aria-labelledby="t-tab-items" hidden>
-            <h2 class="section-title">直近の解析で読み取った内訳</h2>
+            <div id="cat-section" hidden>
+                <h2 class="section-title">カテゴリ別</h2>
+                <div class="surface cat-card" id="cat-card"></div>
+                <p class="cat-note" id="cat-note"></p>
+            </div>
+            <h2 class="section-title">読み取った項目</h2>
             <div class="surface" id="items-card"></div>
             <div id="items-note"></div>
         </section>
@@ -574,6 +615,35 @@
         return { total, items };
     }
 
+    // ---------- カテゴリ ----------
+    // 「食費（請求分）」「食費請求分」→「食費」。同じカテゴリは合算し、金額の大きい順に並べる
+    function categoryOf(name) {
+        if (!name || name === '（項目名なし）') return '未分類';
+        const c = name.replace(/\s*[（(]?\s*請求分\s*[）)]?\s*$/, '').trim();
+        return c || '未分類';
+    }
+
+    function groupCategories(items) {
+        const map = new Map();
+        items.forEach(it => {
+            if (!(it.amount > 0)) return;
+            const key = categoryOf(it.name);
+            map.set(key, (map.get(key) || 0) + it.amount);
+        });
+        return Array.from(map, ([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
+    }
+
+    // 直近に「基準にする」を実行した時点のカテゴリ別金額（比較用）。なければ null
+    function previousCategoryMap() {
+        const h = appData.history
+            .filter(x => x.confirmed === appData.baseAmount && Array.isArray(x.categories))
+            .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+        if (!h) return null;
+        return new Map(h.categories.map(c => [c.name, c.amount]));
+    }
+
+    const catColor = i => `var(--cat-${i % 6})`;
+
     // ---------- 表示ユーティリティ ----------
     const $ = id => document.getElementById(id);
     const fmt = n => n.toLocaleString('ja-JP');
@@ -700,6 +770,74 @@
         }
     }
 
+    function buildCatBar(container, cats) {
+        clear(container);
+        cats.forEach((c, i) => {
+            const seg = el('span');
+            seg.style.flexGrow = String(c.amount);
+            seg.style.background = catColor(i);
+            container.appendChild(seg);
+        });
+    }
+
+    function dot(i) {
+        const d = el('span', 'dot');
+        d.style.background = catColor(i);
+        return d;
+    }
+
+    function renderCategories() {
+        const cats = groupCategories(appData.items);
+        const sum = cats.reduce((a, b) => a + b.amount, 0);
+        const has = cats.length > 0;
+        $('hero-cats').hidden = !has;
+        $('cat-section').hidden = !has;
+        if (!has) return;
+
+        // ホーム: 色付きバー + 凡例
+        buildCatBar($('hero-catbar'), cats);
+        const legend = $('hero-catlist');
+        clear(legend);
+        cats.forEach((c, i) => {
+            const row = el('div', 'legend-row');
+            row.append(dot(i), el('span', 'nm', c.name), el('span', 'am amt', yen(c.amount)));
+            legend.appendChild(row);
+        });
+
+        // 内訳確認: 割合と、前回基準からの増減つき
+        const card = $('cat-card');
+        clear(card);
+        const bar = el('div', 'catbar');
+        bar.setAttribute('aria-hidden', 'true');
+        buildCatBar(bar, cats);
+        card.appendChild(bar);
+
+        const prev = previousCategoryMap();
+        cats.forEach((c, i) => {
+            const pct = c.amount / sum * 100;
+            const row = el('div', 'cat-row');
+            const main = el('div', 'cat-main');
+            main.append(el('div', 'cat-name', c.name), el('div', 'cat-sub amt', pct < 1 ? '1%未満' : `${Math.round(pct)}%`));
+            const right = el('div', 'cat-right');
+            right.appendChild(el('div', 'cat-amt amt', yen(c.amount)));
+            if (prev) {
+                let text, cls = 'cat-delta amt';
+                if (!prev.has(c.name)) {
+                    text = '新規';
+                } else {
+                    const d = c.amount - prev.get(c.name);
+                    if (d > 0) text = `+${yen(d)}`;
+                    else if (d < 0) { text = `−${yen(-d)}`; cls += ' neg'; }
+                    else { text = '±¥0'; cls += ' zero'; }
+                }
+                right.appendChild(el('div', cls, text));
+            }
+            row.append(dot(i), main, right);
+            card.appendChild(row);
+        });
+        $('cat-note').textContent = prev ? '増減は、前回「基準にする」を実行した時点との比較です。' : '';
+    }
+
     function renderHistory() {
         const card = $('history-card');
         clear(card);
@@ -728,6 +866,7 @@
 
     function renderAll() {
         renderCalc();
+        renderCategories();
         renderItems();
         renderHistory();
     }
@@ -841,7 +980,8 @@
             date: new Date().toISOString(),
             confirmed: appData.currentTotal,
             increase: diff,
-            oldBase: appData.baseAmount
+            oldBase: appData.baseAmount,
+            categories: groupCategories(appData.items)
         });
         appData.baseAmount = appData.currentTotal;
         saveData();
